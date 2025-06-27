@@ -90,7 +90,6 @@ export default function Menu() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Menu</Text>
-      {/* Increase margin below the title for more space */}
       <View style={{ height: 50 }} />
       <FlatList
         data={foods}
@@ -115,11 +114,11 @@ export default function Menu() {
                 <Text style={styles.foodName}>{item.name}</Text>
                 <Text style={styles.foodPrice}>${item.price}</Text>
                 {item.varieties && item.varieties.length > 0 && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Variety:</Text>
+                  <View style={styles.pickerRow}>
+                    <Text style={styles.labelNoGap}>Variety:</Text>
                     <Picker
                       selectedValue={sel.variety}
-                      style={styles.picker}
+                      style={styles.inlinePicker}
                       onValueChange={(value) =>
                         setSelected((prev) => ({
                           ...prev,
@@ -134,11 +133,11 @@ export default function Menu() {
                   </View>
                 )}
                 {item.flavours && item.flavours.length > 0 && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Flavour:</Text>
+                  <View style={styles.pickerRow}>
+                    <Text style={styles.labelNoGap}>Flavour:</Text>
                     <Picker
                       selectedValue={sel.flavour}
-                      style={styles.picker}
+                      style={styles.inlinePicker}
                       onValueChange={(value) =>
                         setSelected((prev) => ({
                           ...prev,
@@ -186,7 +185,7 @@ export default function Menu() {
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.addBtn}
+                style={[styles.addBtn, { marginLeft: 30, alignSelf: 'flex-start' }]}
                 onPress={() => handleAddToCart(item)}
               >
                 <Text style={styles.addBtnText}>Add to Cart</Text>
@@ -232,7 +231,27 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   label: { fontFamily: 'outfit', fontSize: 14, marginRight: 6 },
-  picker: { height: 30, width: 120 },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  labelNoGap: {
+    fontFamily: 'outfit',
+    fontSize: 14,
+    marginRight: 2, // Minimal gap between label and picker
+  },
+  inlinePicker: {
+    height: 30,
+    width: 120,
+    marginLeft: 0, // No extra gap
+    marginTop: 0,
+    marginBottom: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    alignSelf: 'center',
+  },
   qtyBtn: {
     backgroundColor: Colors.LIGHT_GRAY || "#eee",
     borderRadius: 4,
