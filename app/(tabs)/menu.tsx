@@ -1,0 +1,245 @@
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from "react-native";
+import Colors from "@/constant/Colors";
+import { useContext, useEffect, useState } from "react";
+import { db } from "@/config/firebaseConfig";
+import { collection, getDocs } from "firebase/firestore";
+import { CartContext } from "../_layout";
+import { Picker } from "@react-native-picker/picker";
+
+type Food = {
+  id: string;
+  name: string;
+  price: number;
+  varieties?: string[];
+  flavours?: string[];
+  image?: any;
+};
+
+const STATIC_FOODS: Food[] = [
+  {
+    id: "1",
+    name: "Chicken Biryani",
+    price: 250,
+    varieties: ["Regular", "Spicy"],
+    flavours: ["Hyderabadi", "Kolkata"],
+    image: require('../../assets/images/chicken_biryani.jpg'), // <-- Use .jpg or .png, not .jfif
+  },
+  {
+    id: "2",
+    name: "Bakarkhani",
+    price: 60,
+    varieties: ["Plain", "Butter"],
+    flavours: [],
+    image: require('../../assets/images/bakarkhani.jpg'), // <-- Use .jpg or .png, not .webp
+  },
+  {
+    id: "3",
+    name: "Paneer Butter Masala",
+    price: 180,
+    varieties: ["Regular"],
+    flavours: [],
+    image: require('../../assets/images/paneer_butter_masala.jpg')
+  },
+  {
+    id: "4",
+    name: "Mutton Korma",
+    price: 350,
+    varieties: ["Regular", "Special"],
+    flavours: ["Lucknowi", "Awadhi"],
+    image: require('../../assets/images/mutton_korma.jpg')
+  },
+];
+
+export default function Menu() {
+  const { addToCart } = useContext(CartContext);
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [selected, setSelected] = useState<{ [id: string]: { variety: string; flavour: string; quantity: number } }>({});
+
+  useEffect(() => {
+    const fetchFoods = async () => {
+      const querySnapshot = await getDocs(collection(db, "foods"));
+      const fetched = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          price: data.price,
+          varieties: data.varieties || [],
+          flavours: data.flavours || [],
+        } as Food;
+      });
+      setFoods(fetched.length > 0 ? fetched : STATIC_FOODS);
+    };
+    fetchFoods();
+  }, []);
+
+  const handleAddToCart = (item: any) => {
+    const sel = selected[item.id] || {
+      variety: item.varieties[0] || "",
+      flavour: item.flavours[0] || "",
+      quantity: 1,
+    };
+    addToCart({
+      ...item,
+      variety: sel.variety,
+      flavour: sel.flavour,
+      quantity: sel.quantity,
+    });
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Menu</Text>
+      {/* Increase margin below the title for more space */}
+      <View style={{ height: 50 }} />
+      <FlatList
+        data={foods}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => {
+          const sel = selected[item.id] || {
+            variety: item.varieties[0] || "",
+            flavour: item.flavours[0] || "",
+            quantity: 1,
+          };
+          return (
+            <View style={styles.foodItem}>
+              {/* Show image if available */}
+              {item.image && (
+                <Image
+                  source={item.image}
+                  style={styles.foodImage}
+                  resizeMode="cover"
+                />
+              )}
+              <View style={{ flex: 1, marginLeft: item.image ? 16 : 0 }}>
+                <Text style={styles.foodName}>{item.name}</Text>
+                <Text style={styles.foodPrice}>${item.price}</Text>
+                {item.varieties && item.varieties.length > 0 && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Variety:</Text>
+                    <Picker
+                      selectedValue={sel.variety}
+                      style={styles.picker}
+                      onValueChange={(value) =>
+                        setSelected((prev) => ({
+                          ...prev,
+                          [item.id]: { ...sel, variety: value },
+                        }))
+                      }
+                    >
+                      {item.varieties.map((v) => (
+                        <Picker.Item key={v} label={v} value={v} />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+                {item.flavours && item.flavours.length > 0 && (
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Flavour:</Text>
+                    <Picker
+                      selectedValue={sel.flavour}
+                      style={styles.picker}
+                      onValueChange={(value) =>
+                        setSelected((prev) => ({
+                          ...prev,
+                          [item.id]: { ...sel, flavour: value },
+                        }))
+                      }
+                    >
+                      {item.flavours.map((f) => (
+                        <Picker.Item key={f} label={f} value={f} />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+                <View style={styles.row}>
+                  <Text style={styles.label}>Qty:</Text>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() =>
+                      setSelected((prev) => ({
+                        ...prev,
+                        [item.id]: {
+                          ...sel,
+                          quantity: Math.max(1, sel.quantity - 1),
+                        },
+                      }))
+                    }
+                  >
+                    <Text style={styles.qtyBtnText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{sel.quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() =>
+                      setSelected((prev) => ({
+                        ...prev,
+                        [item.id]: {
+                          ...sel,
+                          quantity: sel.quantity + 1,
+                        },
+                      }))
+                    }
+                  >
+                    <Text style={styles.qtyBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.addBtn}
+                onPress={() => handleAddToCart(item)}
+              >
+                <Text style={styles.addBtnText}>Add to Cart</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.WHITE, padding: 20 },
+  title: { fontSize: 24, fontFamily: 'outfit-bold', color: Colors.PRIMARY, marginBottom: 0, textAlign: 'left' },
+  foodItem: { 
+    padding: 16, 
+    borderBottomWidth: 1, 
+    borderColor: Colors.BORDER, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  foodImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+    backgroundColor: "#eee",
+  },
+  foodName: { fontFamily: 'outfit', fontSize: 18 },
+  foodPrice: { fontFamily: 'outfit-bold', color: Colors.PRIMARY },
+  addBtn: {
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  addBtnText: {
+    color: Colors.WHITE,
+    fontFamily: 'outfit-bold',
+    fontSize: 14,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+  label: { fontFamily: 'outfit', fontSize: 14, marginRight: 6 },
+  picker: { height: 30, width: 120 },
+  qtyBtn: {
+    backgroundColor: Colors.LIGHT_GRAY || "#eee",
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginHorizontal: 4,
+  },
+  qtyBtnText: { fontSize: 18, fontFamily: "outfit-bold" },
+  qtyText: { fontFamily: "outfit", fontSize: 16, minWidth: 20, textAlign: "center" },
+});

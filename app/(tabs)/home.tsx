@@ -1,0 +1,22 @@
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import Colors from "@/constant/Colors";
+import { useRouter } from "expo-router";
+
+export default function Home() {
+  const router = useRouter();
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Welcome to Foodie!</Text>
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/(tabs)/menu')}>
+        <Text style={styles.buttonText}>Browse Menu</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.WHITE, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 28, fontFamily: 'outfit-bold', color: Colors.PRIMARY, marginBottom: 30 },
+  button: { backgroundColor: Colors.PRIMARY, padding: 16, borderRadius: 10 },
+  buttonText: { color: Colors.WHITE, fontFamily: 'outfit', fontSize: 18 }
+});
