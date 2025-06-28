@@ -247,7 +247,7 @@ export default function SignUp() {
           onPress={() => router.push('/')}
           style={styles.homeButton}
         >
-          <Text style={styles.homeButtonText}>Home</Text>
+          <Text style={styles.homeText}>Home</Text>
         </TouchableOpacity>
       </View>
 
@@ -337,7 +337,7 @@ export default function SignUp() {
           Already have an account?
         </Text>
 
-        <Pressable onPress={() => router.push("/auth/signIn")}>
+        <Pressable onPress={() => router.push("/auth/register-role")}>
           <Text
             style={{
               color: Colors.PRIMARY,
@@ -372,10 +372,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.PRIMARY,
   },
-  homeButtonText: {
+  homeText: {
     color: Colors.PRIMARY,
-    fontFamily: 'outfit',
-    fontSize: 16,
+    fontFamily: "outfit-bold",
+    fontSize: 18,
   },
   textInput: {
     borderWidth: 1,

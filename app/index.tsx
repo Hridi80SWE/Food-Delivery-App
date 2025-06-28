@@ -63,7 +63,7 @@ function IndexContent() {
    
 
     <TouchableOpacity style={styles.button}
-    onPress={()=> router.push('/auth/signUp')}>
+    onPress={()=> router.push('/auth/register-role')}>
         <Text style={[styles.buttonText, {color: Colors.PRIMARY}]}>Get Started!</Text>
     </TouchableOpacity>
 
@@ -72,7 +72,7 @@ function IndexContent() {
         borderWidth: 1,
         borderColor: Colors.WHITE
     }]}
-    onPress={()=> router.push('/auth/signIn')}>
+    onPress={()=> router.push('/auth/register-role')}>
         <Text style={styles.buttonText}>Already have an Account?</Text>
     </TouchableOpacity>
     </View>

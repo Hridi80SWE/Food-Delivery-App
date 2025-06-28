@@ -1,10 +1,12 @@
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from "react-native";
 import Colors from "@/constant/Colors";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState, useCallback } from "react";
 import { db } from "@/config/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { CartContext } from "../_layout";
 import { Picker } from "@react-native-picker/picker";
+import { UserDetailContext } from "@/context/UserDetailContext";
+import { useIsFocused } from "@react-navigation/native";
 
 type Food = {
   id: string;
@@ -50,11 +52,17 @@ const STATIC_FOODS: Food[] = [
   },
 ];
 
+const ITEMS_PER_PAGE = 5;
+
 export default function Menu() {
   const { addToCart } = useContext(CartContext);
+  const { userDetail } = useContext(UserDetailContext);
+  const isFocused = useIsFocused();
   const [foods, setFoods] = useState<Food[]>([]);
   const [selected, setSelected] = useState<{ [id: string]: { variety: string; flavour: string; quantity: number } }>({});
+  const [page, setPage] = useState(1);
 
+  // Fetch foods and handle static fallback
   useEffect(() => {
     const fetchFoods = async () => {
       const querySnapshot = await getDocs(collection(db, "foods"));
@@ -66,12 +74,34 @@ export default function Menu() {
           price: data.price,
           varieties: data.varieties || [],
           flavours: data.flavours || [],
+          imageUrl: data.imageUrl,
         } as Food;
       });
-      setFoods(fetched.length > 0 ? fetched : STATIC_FOODS);
+
+      // Merge static and Firestore items, avoiding duplicates by name
+      const allFoods = [
+        ...STATIC_FOODS.filter(staticItem =>
+          !fetched.some(f => f.name === staticItem.name)
+        ),
+        ...fetched
+      ];
+      setFoods(allFoods);
+      setPage(1); // Reset to first page on data change
     };
     fetchFoods();
-  }, []);
+  }, [isFocused]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(foods.length / ITEMS_PER_PAGE);
+  const paginatedFoods = foods.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  const goToNextPage = useCallback(() => {
+    if (page < totalPages) setPage(page + 1);
+  }, [page, totalPages]);
+
+  const goToPrevPage = useCallback(() => {
+    if (page > 1) setPage(page - 1);
+  }, [page]);
 
   const handleAddToCart = (item: any) => {
     const sel = selected[item.id] || {
@@ -92,7 +122,7 @@ export default function Menu() {
       <Text style={styles.title}>Menu</Text>
       <View style={{ height: 50 }} />
       <FlatList
-        data={foods}
+        data={paginatedFoods}
         keyExtractor={item => item.id}
         renderItem={({ item }) => {
           const sel = selected[item.id] || {
@@ -102,15 +132,21 @@ export default function Menu() {
           };
           return (
             <View style={styles.foodItem}>
-              {/* Show image if available */}
-              {item.image && (
+              {/* Show image if available (uploaded or static) */}
+              {item.imageUrl ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.foodImage}
+                  resizeMode="cover"
+                />
+              ) : item.image ? (
                 <Image
                   source={item.image}
                   style={styles.foodImage}
                   resizeMode="cover"
                 />
-              )}
-              <View style={{ flex: 1, marginLeft: item.image ? 16 : 0 }}>
+              ) : null}
+              <View style={{ flex: 1, marginLeft: (item.imageUrl || item.image) ? 16 : 0 }}>
                 <Text style={styles.foodName}>{item.name}</Text>
                 <Text style={styles.foodPrice}>${item.price}</Text>
                 {item.varieties && item.varieties.length > 0 && (
@@ -184,16 +220,37 @@ export default function Menu() {
                   </TouchableOpacity>
                 </View>
               </View>
-              <TouchableOpacity
-                style={[styles.addBtn, { marginLeft: 30, alignSelf: 'flex-start' }]}
-                onPress={() => handleAddToCart(item)}
-              >
-                <Text style={styles.addBtnText}>Add to Cart</Text>
-              </TouchableOpacity>
+              {/* Hide Add to Cart for admins */}
+              {(!userDetail || userDetail.role !== "admin") && (
+                <TouchableOpacity
+                  style={[styles.addBtn, { marginLeft: 30, alignSelf: 'flex-start' }]}
+                  onPress={() => handleAddToCart(item)}
+                >
+                  <Text style={styles.addBtnText}>Add to Cart</Text>
+                </TouchableOpacity>
+              )}
             </View>
           );
         }}
       />
+      {/* Pagination Controls */}
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          style={[styles.pageBtn, page === 1 && { opacity: 0.5 }]}
+          onPress={goToPrevPage}
+          disabled={page === 1}
+        >
+          <Text style={styles.pageBtnText}>Previous</Text>
+        </TouchableOpacity>
+        <Text style={styles.pageInfo}>{`Page ${page} of ${totalPages}`}</Text>
+        <TouchableOpacity
+          style={[styles.pageBtn, page === totalPages && { opacity: 0.5 }]}
+          onPress={goToNextPage}
+          disabled={page === totalPages}
+        >
+          <Text style={styles.pageBtnText}>Next</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -261,4 +318,28 @@ const styles = StyleSheet.create({
   },
   qtyBtnText: { fontSize: 18, fontFamily: "outfit-bold" },
   qtyText: { fontFamily: "outfit", fontSize: 16, minWidth: 20, textAlign: "center" },
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  pageBtn: {
+    backgroundColor: Colors.PRIMARY,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    marginHorizontal: 10,
+  },
+  pageBtnText: {
+    color: Colors.WHITE,
+    fontFamily: "outfit-bold",
+    fontSize: 16,
+  },
+  pageInfo: {
+    fontFamily: "outfit",
+    fontSize: 16,
+    color: Colors.PRIMARY,
+  },
 });

@@ -31,6 +31,7 @@ import { ActivityIndicator, View, TouchableOpacity, Text } from "react-native";
 import Colors from "@/constant/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, usePathname } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 
 export const CartContext = createContext({
   cart: [],
@@ -84,6 +85,32 @@ function CartButton() {
   );
 }
 
+function BackButton() {
+  const navigation = useNavigation();
+  const pathname = usePathname();
+  const isMenuPage = pathname === "/(tabs)/menu";
+  return (
+    <TouchableOpacity
+      style={{
+        position: "absolute",
+        top: isMenuPage ? 80 : 60,
+        left: 10,
+        zIndex: 100,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 25,
+        padding: 8,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      }}
+      onPress={() => navigation.canGoBack() && navigation.goBack()}
+    >
+      <Ionicons name="arrow-back" size={28} color={Colors.PRIMARY} />
+    </TouchableOpacity>
+  );
+}
+
 function MenuButton() {
   const router = useRouter();
   const pathname = usePathname();
@@ -93,7 +120,7 @@ function MenuButton() {
       style={{
         position: "absolute",
         top: isMenuPage ? 80 : 60,
-        left: 20,
+        left: 55,
         zIndex: 100,
         backgroundColor: Colors.WHITE,
         borderRadius: 25,
@@ -110,6 +137,58 @@ function MenuButton() {
   );
 }
 
+function HomeButton() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isMenuPage = pathname === "/(tabs)/menu";
+  return (
+    <TouchableOpacity
+      style={{
+        position: "absolute",
+        top: isMenuPage ? 80 : 60,
+        left: 110,
+        zIndex: 100,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 25,
+        padding: 8,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      }}
+      onPress={() => router.push("/(tabs)/home")}
+    >
+      <Ionicons name="home" size={28} color={Colors.PRIMARY} />
+    </TouchableOpacity>
+  );
+}
+
+function AddMenuItemButton() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isMenuPage = pathname === "/(tabs)/menu";
+  return (
+    <TouchableOpacity
+      style={{
+        position: "absolute",
+        top: isMenuPage ? 80 : 60,
+        right: 155, // moved further right for symmetry
+        zIndex: 100,
+        backgroundColor: Colors.WHITE,
+        borderRadius: 25,
+        padding: 8,
+        elevation: 2,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      }}
+      onPress={() => router.push("/add-menu-item")}
+    >
+      <Ionicons name="add-circle" size={28} color={Colors.PRIMARY} />
+    </TouchableOpacity>
+  );
+}
+
 function ProfileButton() {
   const router = useRouter();
   const pathname = usePathname();
@@ -119,7 +198,7 @@ function ProfileButton() {
       style={{
         position: "absolute",
         top: isMenuPage ? 80 : 60,
-        right: 70,
+        right: 90, // moved further right for symmetry
         zIndex: 100,
         backgroundColor: Colors.WHITE,
         borderRadius: 25,
@@ -136,29 +215,47 @@ function ProfileButton() {
   );
 }
 
-function HomeButton() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const isMenuPage = pathname === "/(tabs)/menu";
+function BackForwardButtons() {
+  const navigation = useNavigation();
   return (
-    <TouchableOpacity
-      style={{
-        position: "absolute",
-        top: isMenuPage ? 80 : 60,
-        left: 70,
-        zIndex: 100,
-        backgroundColor: Colors.WHITE,
-        borderRadius: 25,
-        padding: 8,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      }}
-      onPress={() => router.push("/(tabs)/home")}
-    >
-      <Ionicons name="home" size={28} color={Colors.PRIMARY} />
-    </TouchableOpacity>
+    <View style={{
+      position: "absolute",
+      top: 20,
+      left: 20,
+      flexDirection: "row",
+      zIndex: 200,
+    }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: Colors.WHITE,
+          borderRadius: 25,
+          padding: 8,
+          marginRight: 10,
+          elevation: 2,
+          shadowColor: "#000",
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        }}
+        onPress={() => navigation.canGoBack() && navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color={Colors.PRIMARY} />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          backgroundColor: Colors.WHITE,
+          borderRadius: 25,
+          padding: 8,
+          elevation: 2,
+          shadowColor: "#000",
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        }}
+        onPress={() => navigation.canGoForward && navigation.goForward && navigation.goForward()}
+        disabled // Forward navigation is not standard in React Navigation, so keep disabled or implement custom logic if needed
+      >
+        <Ionicons name="arrow-forward" size={24} color={Colors.PRIMARY} />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -192,16 +289,28 @@ export default function RootLayout() {
   const pathname = usePathname();
 
   // Protect routes: only allow index, signUp, signIn if not signed in
-  useEffect(() => {
-    const publicRoutes = ["/", "/auth/signUp", "/auth/signIn"];
-    if (!userDetail && !publicRoutes.includes(pathname)) {
-      router.replace("/");
-    }
-  }, [userDetail, pathname]);
 
-  // Only show navigation buttons on protected routes
-  const publicRoutes = ["/", "/auth/signUp", "/auth/signIn"];
-  const showNavButtons = !publicRoutes.includes(pathname);
+  // Update the publicRoutes array in your useEffect
+useEffect(() => {
+  const publicRoutes = ["/", "/auth/signUp", "/auth/signIn", "/auth/register-role"]; // Added register-role
+  if (!userDetail && !publicRoutes.includes(pathname)) {
+    router.replace("/");
+  }
+}, [userDetail, pathname]);
+
+// Also update the showNavButtons logic
+const publicRoutes = ["/", "/auth/signUp", "/auth/signIn", "/auth/register-role"]; // Added register-role
+const showNavButtons = !publicRoutes.includes(pathname);
+  // useEffect(() => {
+  //   const publicRoutes = ["/", "/auth/signUp", "/auth/signIn"];
+  //   if (!userDetail && !publicRoutes.includes(pathname)) {
+  //     router.replace("/");
+  //   }
+  // }, [userDetail, pathname]);
+
+  // // Only show navigation buttons on protected routes
+  // const publicRoutes = ["/", "/auth/signUp", "/auth/signIn"];
+  // const showNavButtons = !publicRoutes.includes(pathname);
 
   // Show loading screen while fonts are loading
   if (!fontsLoaded) {
@@ -248,10 +357,12 @@ export default function RootLayout() {
         </Stack>
         {showNavButtons && (
           <>
+            <BackButton />
             <MenuButton />
             <HomeButton />
+            {userDetail?.role === "admin" && <AddMenuItemButton />}
             <ProfileButton />
-            <CartButton />
+            {(!userDetail || userDetail.role !== "admin") && <CartButton />}
           </>
         )}
         {/* <Toast position='top' visibilityTime={3000} topOffset={50} /> */}

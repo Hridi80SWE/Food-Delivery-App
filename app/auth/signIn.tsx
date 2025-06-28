@@ -178,10 +178,10 @@ export default function SignIn() {
       .then(async (resp) => {
         const user = resp.user;
         console.log(user);
-        await getUserDetails();
+        const userData = await getUserDetails();
         setLoading(false);
+        // Always go to home page after sign in
         router.replace('/(tabs)/home');
-       
       }).catch(e => {
         console.log(e);
         setLoading(false);
@@ -195,31 +195,25 @@ export default function SignIn() {
     }
 
     const getUserDetails = async() => {
-      if (!email) return;
+      if (!email) return null;
       try {
         const result = await getDoc(doc(db, 'users', email));
         console.log(result.data());
         if (result.exists()) {
           setUserDetail(result.data());
+          return result.data();
         }
+        return null;
       } catch (error) {
         console.log('Error getting user details:', error);
+        return null;
       }
     }
       
   return (
-      <View
-        style={{
-          display: "flex",
-          alignItems: "center",
-          paddingTop: 60,
-          flex: 1,
-          backgroundColor: Colors.WHITE,
-          padding: 25,
-        }}
-      >
-        {/* Back Button */}
-        <View style={styles.headerContainer}>
+      <View style={styles.container}>
+        {/* Top row: Back and Home text button aligned horizontally, a little lower */}
+        <View style={styles.topRow}>
           <TouchableOpacity 
             onPress={() => router.back()}
             style={styles.backButton}
@@ -228,130 +222,158 @@ export default function SignIn() {
           </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => router.push('/')}
-            style={styles.homeButton}
+            style={styles.homeTextButton}
           >
-            <Text style={styles.homeButtonText}>Home</Text>
+            <Text style={styles.homeText}>Home</Text>
           </TouchableOpacity>
         </View>
 
-        <Image
-          source={require("./../../assets/images/app_logo.png")}
-          style={{
-            width: 180,
-            height: 180,
-            borderRadius: 50,
-            marginTop: 20,
-          }}
-        />
-        <Text
-          style={{
-            fontSize: 30,
-            fontFamily: "outfit-bold",
-            marginTop: 20,
-          }}
-        >
-          Welcome Back!
-        </Text>
-        
-        <TextInput 
-          placeholder="Email"
-          onChangeText={(value) => setEmail(value)}
-          value={email}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.textInput}
-        />
-        
-        <TextInput 
-          placeholder="Password"
-          onChangeText={(value) => setPassword(value)}
-          value={password}
-          secureTextEntry={true}
-          style={styles.textInput}
-        />
-        
-        <TouchableOpacity
-          onPress={onSignInClick}
-          disabled={loading}
-          style={{
-            padding: 15,
-            backgroundColor: loading ? Colors.GRAY : Colors.PRIMARY,
-            width: "100%",
-            marginTop: 25,
-            borderRadius: 10,
-          }}
-        >
-        {!loading ? (
-          <Text
+        <View style={styles.contentWrapper}>
+          <Image
+            source={require("./../../assets/images/app_logo.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.title}>
+            Welcome Back!
+          </Text>
+          
+          <TextInput 
+            placeholder="Email"
+            onChangeText={(value) => setEmail(value)}
+            value={email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.textInput}
+          />
+          
+          <TextInput 
+            placeholder="Password"
+            onChangeText={(value) => setPassword(value)}
+            value={password}
+            secureTextEntry={true}
+            style={styles.textInput}
+          />
+          
+          <TouchableOpacity
+            onPress={onSignInClick}
+            disabled={loading}
             style={{
-              fontFamily: "outfit",
-              fontSize: 20,
-              color: Colors.WHITE,
-              textAlign: "center",
+              padding: 15,
+              backgroundColor: loading ? Colors.GRAY : Colors.PRIMARY,
+              width: "100%",
+              marginTop: 25,
+              borderRadius: 10,
             }}
           >
-            Sign In
-          </Text>
-        ) : 
-          <ActivityIndicator size={'large'} color={Colors.WHITE}/>
-        }
-        </TouchableOpacity>
-        
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            marginTop: 20,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: "outfit",
-            }}
-          >
-            Don't have an Account?
-          </Text>
-  
-          <Pressable onPress={() => router.push("/auth/signUp")}>
+          {!loading ? (
             <Text
               style={{
-                color: Colors.PRIMARY,
-                fontFamily: "outfit-bold",
-                marginLeft: 5,
+                fontFamily: "outfit",
+                fontSize: 20,
+                color: Colors.WHITE,
+                textAlign: "center",
               }}
             >
-              Create New Here
+              Sign In
             </Text>
-          </Pressable>
+          ) : 
+            <ActivityIndicator size={'large'} color={Colors.WHITE}/>
+          }
+          </TouchableOpacity>
+          
+          <View
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              marginTop: 20,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: "outfit",
+              }}
+            >
+              Don't have an Account?
+            </Text>
+            <Pressable onPress={() => router.push("/auth/signUp")}>
+              <Text
+                style={{
+                  color: Colors.PRIMARY,
+                  fontFamily: "outfit-bold",
+                  marginLeft: 5,
+                }}
+              >
+                Create New Here
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
-  )
+    )
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 5,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.WHITE,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 25,
+  },
+  topRow: {
+    position: "absolute",
+    top: 70,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    zIndex: 10,
   },
   backButton: {
-    padding: 10,
-    borderRadius: 25,
-    backgroundColor: Colors.LIGHT_GRAY || '#f0f0f0',
+    backgroundColor: Colors.WHITE,
+    borderRadius: 20,
+    padding: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  homeButton: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+  homeTextButton: {
+    backgroundColor: Colors.WHITE,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.PRIMARY,
+    paddingHorizontal: 18,
+    paddingVertical: 6,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  homeButtonText: {
+  homeText: {
     color: Colors.PRIMARY,
-    fontFamily: 'outfit',
-    fontSize: 16,
+    fontFamily: "outfit-bold",
+    fontSize: 18,
+  },
+  contentWrapper: {
+    marginTop: -30,
+    alignItems: "center",
+    width: "100%",
+  },
+  logo: {
+    width: 180,
+    height: 180,
+    borderRadius: 50,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 30,
+    fontFamily: "outfit-bold",
+    marginTop: 20,
+    marginBottom: 10,
   },
   textInput: {
     borderWidth: 1,
