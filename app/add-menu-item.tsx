@@ -56,6 +56,10 @@ export default function AddMenuItem() {
       Alert.alert("Name and price are required.");
       return;
     }
+    if (!imageUri) {
+      Alert.alert("Please select an image.");
+      return;
+    }
     let uploadedImageUrl = "";
     if (imageUri) {
       try {

@@ -1,27 +1,3 @@
-// import { useFonts } from "expo-font";
-// import { Stack } from "expo-router";
-// import { UserDetailContext } from "./../context/UserDetailContext";
-// import { useState } from "react";
-
-// export default function RootLayout() {
-//   useFonts({
-//     'outfit': require('./../assets/fonts/Outfit-Regular.ttf'),
-//     'outfit-bold': require('./../assets/fonts/Outfit-Bold.ttf')
-//   })
-
-//   const userState = useState(null);
-//   return (
-//     <UserDetailContext.Provider value={userState}>
-//       <Stack
-//         screenOptions={{
-//           headerShown: false
-//         }}
-//       />
-//       {/* <Toast position='top' visibilityTime={3000} topOffset={50} /> */}
-//     </UserDetailContext.Provider>
-//   )
-// }
-  
 
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -172,7 +148,7 @@ function AddMenuItemButton() {
       style={{
         position: "absolute",
         top: isMenuPage ? 80 : 60,
-        right: 155, // moved further right for symmetry
+        right: 75, // closer to right edge
         zIndex: 100,
         backgroundColor: Colors.WHITE,
         borderRadius: 25,
@@ -193,12 +169,17 @@ function ProfileButton() {
   const router = useRouter();
   const pathname = usePathname();
   const isMenuPage = pathname === "/(tabs)/menu";
+  const { userDetail } = useContext(UserDetailContext);
+  
+  // For admins, position it next to the add button. For users, position it where cart used to be
+  const rightPosition = userDetail?.role === "admin" ? 130 : 75;
+  
   return (
     <TouchableOpacity
       style={{
         position: "absolute",
         top: isMenuPage ? 80 : 60,
-        right: 90, // moved further right for symmetry
+        right: rightPosition,
         zIndex: 100,
         backgroundColor: Colors.WHITE,
         borderRadius: 25,
@@ -360,9 +341,12 @@ const showNavButtons = !publicRoutes.includes(pathname);
             <BackButton />
             <MenuButton />
             <HomeButton />
+            {/* Show AddMenuItemButton only for admins */}
             {userDetail?.role === "admin" && <AddMenuItemButton />}
-            <ProfileButton />
-            {(!userDetail || userDetail.role !== "admin") && <CartButton />}
+            {/* Always show ProfileButton if user is signed in */}
+            {userDetail && <ProfileButton />}
+            {/* Only show CartButton for non-admins */}
+            {userDetail && userDetail.role !== "admin" && <CartButton />}
           </>
         )}
         {/* <Toast position='top' visibilityTime={3000} topOffset={50} /> */}

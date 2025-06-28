@@ -1,12 +1,14 @@
+
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image } from "react-native";
 import Colors from "@/constant/Colors";
-import { useContext, useEffect, useState, useCallback } from "react";
+import { useContext, useEffect, useState } from "react";
 import { db } from "@/config/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { CartContext } from "../_layout";
 import { Picker } from "@react-native-picker/picker";
 import { UserDetailContext } from "@/context/UserDetailContext";
 import { useIsFocused } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
 type Food = {
   id: string;
@@ -52,15 +54,13 @@ const STATIC_FOODS: Food[] = [
   },
 ];
 
-const ITEMS_PER_PAGE = 5;
-
 export default function Menu() {
   const { addToCart } = useContext(CartContext);
   const { userDetail } = useContext(UserDetailContext);
   const isFocused = useIsFocused();
+  const router = useRouter();
   const [foods, setFoods] = useState<Food[]>([]);
   const [selected, setSelected] = useState<{ [id: string]: { variety: string; flavour: string; quantity: number } }>({});
-  const [page, setPage] = useState(1);
 
   // Fetch foods and handle static fallback
   useEffect(() => {
@@ -86,22 +86,9 @@ export default function Menu() {
         ...fetched
       ];
       setFoods(allFoods);
-      setPage(1); // Reset to first page on data change
     };
     fetchFoods();
   }, [isFocused]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(foods.length / ITEMS_PER_PAGE);
-  const paginatedFoods = foods.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-
-  const goToNextPage = useCallback(() => {
-    if (page < totalPages) setPage(page + 1);
-  }, [page, totalPages]);
-
-  const goToPrevPage = useCallback(() => {
-    if (page > 1) setPage(page - 1);
-  }, [page]);
 
   const handleAddToCart = (item: any) => {
     const sel = selected[item.id] || {
@@ -122,9 +109,15 @@ export default function Menu() {
       <Text style={styles.title}>Menu</Text>
       <View style={{ height: 50 }} />
       <FlatList
-        data={paginatedFoods}
+        data={foods}
         keyExtractor={item => item.id}
         renderItem={({ item }) => {
+          // Fallback: if Firebase item has no imageUrl, try to find static image by name
+          let fallbackImage = null;
+          if (!item.imageUrl) {
+            const staticMatch = STATIC_FOODS.find(f => f.name === item.name);
+            if (staticMatch) fallbackImage = staticMatch.image;
+          }
           const sel = selected[item.id] || {
             variety: item.varieties[0] || "",
             flavour: item.flavours[0] || "",
@@ -132,7 +125,7 @@ export default function Menu() {
           };
           return (
             <View style={styles.foodItem}>
-              {/* Show image if available (uploaded or static) */}
+              {/* Show image if available (uploaded or static or fallback) */}
               {item.imageUrl ? (
                 <Image
                   source={{ uri: item.imageUrl }}
@@ -145,8 +138,18 @@ export default function Menu() {
                   style={styles.foodImage}
                   resizeMode="cover"
                 />
+              ) : fallbackImage ? (
+                <Image
+                  source={fallbackImage}
+                  style={styles.foodImage}
+                  resizeMode="cover"
+                />
               ) : null}
-              <View style={{ flex: 1, marginLeft: (item.imageUrl || item.image) ? 16 : 0 }}>
+              <View style={{
+                flex: 1,
+                marginLeft: 0, // Remove left margin
+                marginRight: 0 // No right margin
+              }}>
                 <Text style={styles.foodName}>{item.name}</Text>
                 <Text style={styles.foodPrice}>${item.price}</Text>
                 {item.varieties && item.varieties.length > 0 && (
@@ -220,6 +223,15 @@ export default function Menu() {
                   </TouchableOpacity>
                 </View>
               </View>
+              {/* Admin: Show Edit button for all items */}
+              {userDetail?.role === "admin" && (
+                <TouchableOpacity
+                  style={[styles.addBtn, { backgroundColor: Colors.SECONDARY || "#888", marginLeft: 10, alignSelf: 'flex-start' }]}
+                  onPress={() => router.push(`/edit-menu-item/${item.id}`)}
+                >
+                  <Text style={[styles.addBtnText, { color: Colors.WHITE }]}>Edit</Text>
+                </TouchableOpacity>
+              )}
               {/* Hide Add to Cart for admins */}
               {(!userDetail || userDetail.role !== "admin") && (
                 <TouchableOpacity
@@ -233,24 +245,6 @@ export default function Menu() {
           );
         }}
       />
-      {/* Pagination Controls */}
-      <View style={styles.paginationContainer}>
-        <TouchableOpacity
-          style={[styles.pageBtn, page === 1 && { opacity: 0.5 }]}
-          onPress={goToPrevPage}
-          disabled={page === 1}
-        >
-          <Text style={styles.pageBtnText}>Previous</Text>
-        </TouchableOpacity>
-        <Text style={styles.pageInfo}>{`Page ${page} of ${totalPages}`}</Text>
-        <TouchableOpacity
-          style={[styles.pageBtn, page === totalPages && { opacity: 0.5 }]}
-          onPress={goToNextPage}
-          disabled={page === totalPages}
-        >
-          <Text style={styles.pageBtnText}>Next</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -271,6 +265,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 10,
     backgroundColor: "#eee",
+    marginRight: 16, // Add right margin to push image left
   },
   foodName: { fontFamily: 'outfit', fontSize: 18 },
   foodPrice: { fontFamily: 'outfit-bold', color: Colors.PRIMARY },
@@ -318,28 +313,4 @@ const styles = StyleSheet.create({
   },
   qtyBtnText: { fontSize: 18, fontFamily: "outfit-bold" },
   qtyText: { fontFamily: "outfit", fontSize: 16, minWidth: 20, textAlign: "center" },
-  paginationContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  pageBtn: {
-    backgroundColor: Colors.PRIMARY,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-    marginHorizontal: 10,
-  },
-  pageBtnText: {
-    color: Colors.WHITE,
-    fontFamily: "outfit-bold",
-    fontSize: 16,
-  },
-  pageInfo: {
-    fontFamily: "outfit",
-    fontSize: 16,
-    color: Colors.PRIMARY,
-  },
 });
